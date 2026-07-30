@@ -12,12 +12,13 @@ export default function ComercioDashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
-  // Datos del Formulario Comercio
+  // Datos del Formulario Comercio (Con Instagram integrado)
   const [formData, setFormData] = useState({
     name: "",
     category: "Restaurante",
     phone: "",
     address: "",
+    instagram: "",
     description: "",
     imageUrl: "",
     menuImages: [] as string[],
@@ -54,6 +55,7 @@ export default function ComercioDashboard() {
               category: data.category || "Restaurante",
               phone: data.phone || "",
               address: data.address || "",
+              instagram: data.instagram || "",
               description: data.description || "",
               imageUrl: data.imageUrl || "",
               menuImages: data.menuImages || [],
@@ -479,6 +481,18 @@ export default function ComercioDashboard() {
           />
         </div>
 
+        {/* CAMPO DE INSTAGRAM INTEGRADO */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-slate-400">Instagram (Usuario o Link)</label>
+          <input
+            type="text"
+            value={formData.instagram}
+            onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+            className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
+            placeholder="@vivebrasil o https://instagram.com/vivebrasil"
+          />
+        </div>
+
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold text-slate-400">Promoción / Descripción</label>
           <textarea
@@ -501,4 +515,3 @@ export default function ComercioDashboard() {
     </main>
   );
 }
-
