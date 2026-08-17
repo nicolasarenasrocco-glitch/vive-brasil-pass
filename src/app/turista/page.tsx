@@ -83,7 +83,22 @@ export default function TuristaDashboard() {
     try {
       const snap = await getDocs(collection(db, "partners"));
       const list: any[] = [];
-      snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+      
+      snap.forEach((d) => {
+        const data = d.data();
+        const nombreComercio = data.name || data.nombre;
+        
+        // FILTRO: Solo agregar si tiene nombre registrado y no está vacío o por defecto
+        const esValido = 
+          nombreComercio && 
+          nombreComercio.trim() !== "" && 
+          nombreComercio !== "Sin nombre registrado";
+
+        if (esValido) {
+          list.push({ id: d.id, ...data });
+        }
+      });
+
       setComercios(list);
     } catch (e) {
       console.error("Error al cargar comercios:", e);
@@ -123,8 +138,9 @@ export default function TuristaDashboard() {
 
   if (selectedCategory !== "Todas") {
     processedComercios = processedComercios.filter((item) => {
-      if (!item.category) return false;
-      const catClean = item.category.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+      const cat = item.category || item.categoria;
+      if (!cat) return false;
+      const catClean = cat.toLowerCase().replace(/[^\w\s]/gi, '').trim();
       const selClean = selectedCategory.toLowerCase().replace(/[^\w\s]/gi, '').trim();
       return catClean.includes(selClean) || selClean.includes(catClean);
     });
@@ -135,7 +151,7 @@ export default function TuristaDashboard() {
       return a.distanceKm - b.distanceKm;
     }
     if (a.distanceKm !== null) return -1;
-    if (a.distanceKm !== null) return 1;
+    if (b.distanceKm !== null) return 1;
     return 0;
   });
 
@@ -272,6 +288,11 @@ export default function TuristaDashboard() {
           <div className="space-y-3">
             {processedComercios.map((item) => {
               const mainImage = item.imageUrl || item.image || item.logo || "/placeholder.jpg";
+              const comName = item.name || item.nombre;
+              const comDesc = item.benefit || item.description || item.descripcion || "Beneficio VIP";
+              const comCat = item.category || item.categoria || "General";
+              const comLoc = item.location || item.address || item.direccion || "Dirección no especificada";
+
               return (
                 <Link
                   key={item.id}
@@ -281,12 +302,12 @@ export default function TuristaDashboard() {
                   <div className="h-32 w-full overflow-hidden relative bg-slate-950">
                     <img
                       src={mainImage}
-                      alt={item.name || "Comercio"}
+                      alt={comName}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    {item.discount && (
+                    {(item.discount || item.descuento) && (
                       <span className="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md shadow-md">
-                        {item.discount}
+                        {item.discount || item.descuento}
                       </span>
                     )}
                     {item.distanceKm !== null && (
@@ -299,12 +320,12 @@ export default function TuristaDashboard() {
                   <div className="p-3 flex justify-between items-center">
                     <div>
                       <span className="text-[9px] text-sky-400 font-bold uppercase tracking-wider">
-                        {item.category || "General"}
+                        {comCat}
                       </span>
-                      <h4 className="font-bold text-white text-sm mt-0.5">{item.name || "Comercio Socio"}</h4>
-                      <p className="text-[11px] text-emerald-400 font-medium mt-0.5">{item.benefit || item.description || "Beneficio VIP"}</p>
+                      <h4 className="font-bold text-white text-sm mt-0.5">{comName}</h4>
+                      <p className="text-[11px] text-emerald-400 font-medium mt-0.5">{comDesc}</p>
                       <p className="text-[10px] text-slate-400 mt-1">
-                        📍 {item.location || item.address || "Dirección no especificada"} {item.sector ? `• ${item.sector}` : ""}
+                        📍 {comLoc} {item.sector ? `• ${item.sector}` : ""}
                       </p>
                     </div>
                     <span className="text-slate-500 text-xs font-bold group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all">
