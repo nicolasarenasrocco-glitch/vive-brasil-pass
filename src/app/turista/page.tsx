@@ -28,7 +28,7 @@ export default function TuristaDashboard() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [comercios, setComercios] = useState<any[]>([]);
   const [historial, setHistorial] = useState<any[]>([]);
-  const [selectedSector, setSelectedSector] = useState<string>("Búzios");
+  const [selectedSector, setSelectedSector] = useState<string>("Todos");
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -47,7 +47,6 @@ export default function TuristaDashboard() {
       },
       (err) => {
         console.warn("GPS no disponible o denegado:", err.message);
-        alert("No pudimos obtener tu ubicación. Asegúrate de permitir el acceso al GPS en tu navegador.");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -118,7 +117,7 @@ export default function TuristaDashboard() {
 
   if (selectedSector !== "Todos") {
     processedComercios = processedComercios.filter(
-      (item) => item.sector?.toLowerCase() === selectedSector.toLowerCase()
+      (item) => item.sector && item.sector.toLowerCase() === selectedSector.toLowerCase()
     );
   }
 
@@ -136,11 +135,11 @@ export default function TuristaDashboard() {
       return a.distanceKm - b.distanceKm;
     }
     if (a.distanceKm !== null) return -1;
-    if (b.distanceKm !== null) return 1;
+    if (a.distanceKm !== null) return 1;
     return 0;
   });
 
-  const sectores = ["Búzios", "Río de Janeiro", "Florianópolis", "Todos"];
+  const sectores = ["Todos", "Búzios", "Río de Janeiro", "Florianópolis"];
   const categorias = ["Todas", "Gastronomía 🍽️", "Playa 🏖️", "Bares 🍹", "Bienestar / Wellness 🧘‍♀️"];
 
   return (
@@ -238,7 +237,7 @@ export default function TuristaDashboard() {
           ))}
         </div>
 
-        {/* Filtro por Categorías con scroll compacto e indicador */}
+        {/* Filtro por Categorías */}
         <div className="relative mb-4">
           <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-none touch-pan-x pr-8">
             {categorias.map((cat) => {
@@ -262,9 +261,6 @@ export default function TuristaDashboard() {
               );
             })}
           </div>
-          <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-slate-900 via-slate-900/80 to-transparent pointer-events-none flex items-center justify-end text-[10px] text-sky-400 font-bold pr-1">
-            ›
-          </div>
         </div>
 
         {/* Catálogo de Tarjetas */}
@@ -274,47 +270,50 @@ export default function TuristaDashboard() {
           </p>
         ) : (
           <div className="space-y-3">
-            {processedComercios.map((item) => (
-              <Link
-                key={item.id}
-                href={`/turista/comercio/${item.id}`}
-                className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden shadow-lg flex flex-col block hover:border-emerald-500/40 transition-all group"
-              >
-                {item.imageUrl && (
-                  <div className="h-32 w-full overflow-hidden relative">
+            {processedComercios.map((item) => {
+              const mainImage = item.imageUrl || item.image || item.logo || "/placeholder.jpg";
+              return (
+                <Link
+                  key={item.id}
+                  href={`/turista/comercio/${item.id}`}
+                  className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden shadow-lg flex flex-col block hover:border-emerald-500/40 transition-all group"
+                >
+                  <div className="h-32 w-full overflow-hidden relative bg-slate-950">
                     <img
-                      src={item.imageUrl}
-                      alt={item.name}
+                      src={mainImage}
+                      alt={item.name || "Comercio"}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <span className="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md shadow-md">
-                      {item.discount}
-                    </span>
+                    {item.discount && (
+                      <span className="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-md shadow-md">
+                        {item.discount}
+                      </span>
+                    )}
                     {item.distanceKm !== null && (
                       <span className="absolute bottom-2 left-2 bg-slate-950/80 backdrop-blur-md text-emerald-400 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/30">
                         📍 a {item.distanceKm < 1 ? `${Math.round(item.distanceKm * 1000)} m` : `${item.distanceKm.toFixed(1)} km`}
                       </span>
                     )}
                   </div>
-                )}
 
-                <div className="p-3 flex justify-between items-center">
-                  <div>
-                    <span className="text-[9px] text-sky-400 font-bold uppercase tracking-wider">
-                      {item.category || "General"}
+                  <div className="p-3 flex justify-between items-center">
+                    <div>
+                      <span className="text-[9px] text-sky-400 font-bold uppercase tracking-wider">
+                        {item.category || "General"}
+                      </span>
+                      <h4 className="font-bold text-white text-sm mt-0.5">{item.name || "Comercio Socio"}</h4>
+                      <p className="text-[11px] text-emerald-400 font-medium mt-0.5">{item.benefit || item.description || "Beneficio VIP"}</p>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        📍 {item.location || item.address || "Dirección no especificada"} {item.sector ? `• ${item.sector}` : ""}
+                      </p>
+                    </div>
+                    <span className="text-slate-500 text-xs font-bold group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all">
+                      Ver →
                     </span>
-                    <h4 className="font-bold text-white text-sm mt-0.5">{item.name}</h4>
-                    <p className="text-[11px] text-emerald-400 font-medium mt-0.5">{item.benefit}</p>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      📍 {item.location} {item.sector ? `• ${item.sector}` : ""}
-                    </p>
                   </div>
-                  <span className="text-slate-500 text-xs font-bold group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all">
-                    Ver →
-                  </span>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
