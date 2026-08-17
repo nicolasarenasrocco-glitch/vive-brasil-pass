@@ -32,19 +32,29 @@ export default function TuristaDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserCoords({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          });
-        },
-        (err) => console.log("GPS no disponible:", err),
-        { enableHighAccuracy: true }
-      );
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Tu navegador no soporta geolocalización.");
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      (err) => {
+        console.warn("GPS no disponible o denegado:", err.message);
+        alert("No pudimos obtener tu ubicación. Asegúrate de permitir el acceso al GPS en tu navegador.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  useEffect(() => {
+    requestLocation();
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -197,10 +207,17 @@ export default function TuristaDashboard() {
           <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
             Locales Partners 📍
           </h3>
-          {userCoords && (
+          {userCoords ? (
             <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
-              GPS Activo
+              GPS Activo ✓
             </span>
+          ) : (
+            <button
+              onClick={requestLocation}
+              className="text-[10px] bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 px-2.5 py-1 rounded-full border border-sky-500/40 font-bold transition-all animate-pulse cursor-pointer"
+            >
+              📍 Activar GPS
+            </button>
           )}
         </div>
 
@@ -304,7 +321,7 @@ export default function TuristaDashboard() {
 
       <button
         onClick={() => signOut(auth)}
-        className="w-full py-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-medium text-xs transition-all mb-4"
+        className="w-full py-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 font-medium text-xs transition-all mb-4 cursor-pointer"
       >
         Cerrar Sesión
       </button>

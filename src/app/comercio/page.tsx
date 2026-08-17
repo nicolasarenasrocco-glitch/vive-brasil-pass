@@ -12,7 +12,7 @@ export default function ComercioDashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
-  // Datos del Formulario Comercio (Con Instagram integrado)
+  // Datos del Formulario Comercio (Estructura unificada)
   const [formData, setFormData] = useState({
     name: "",
     category: "Restaurante",
@@ -39,6 +39,19 @@ export default function ComercioDashboard() {
   // Referencia para el input de perfil
   const profileInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper para guardar en Firestore asegurando compatibilidad de campos
+  const saveToFirestore = async (uid: string, dataToSave: typeof formData) => {
+    const payload = {
+      ...dataToSave,
+      location: dataToSave.address,     // Compatibilidad de ubicación
+      locationUrl: dataToSave.address,  // Link de Maps / Ubicación
+      benefit: dataToSave.description,  // Promoción/Beneficio
+      discount: dataToSave.description, // Descuento
+      updatedAt: new Date().toISOString()
+    };
+    await setDoc(doc(db, "partners", uid), payload, { merge: true });
+  };
+
   // 1. Escuchar estado de Autenticación y cargar datos de Firestore
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -54,9 +67,9 @@ export default function ComercioDashboard() {
               name: data.name || "",
               category: data.category || "Restaurante",
               phone: data.phone || "",
-              address: data.address || "",
+              address: data.address || data.locationUrl || data.location || "",
               instagram: data.instagram || "",
-              description: data.description || "",
+              description: data.description || data.benefit || data.discount || "",
               imageUrl: data.imageUrl || "",
               menuImages: data.menuImages || [],
             });
@@ -119,8 +132,8 @@ export default function ComercioDashboard() {
     setMessage(null);
 
     try {
-      await setDoc(doc(db, "partners", user.uid), formData, { merge: true });
-      setMessage({ type: "success", text: "¡Datos del comercio actualizados!" });
+      await saveToFirestore(user.uid, formData);
+      setMessage({ type: "success", text: "¡Todos los cambios y textos guardados exitosamente!" });
     } catch (err) {
       console.error(err);
       setMessage({ type: "error", text: "Error al guardar los datos." });
@@ -144,15 +157,15 @@ export default function ComercioDashboard() {
     setMessage(null);
 
     try {
-      const storageRef = ref(storage, `partners/${currentUser.uid}/profile_${Date.now()}`);
+      const storageRef = ref(storage, `partners/${currentUser.uid}/logo_${Date.now()}.jpg`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
       const updated = { ...formData, imageUrl: url };
       setFormData(updated);
-      await setDoc(doc(db, "partners", currentUser.uid), updated, { merge: true });
+      await saveToFirestore(currentUser.uid, updated);
 
-      setMessage({ type: "success", text: "Foto de perfil actualizada. 📸" });
+      setMessage({ type: "success", text: "Foto de perfil subida y guardada. 📸" });
     } catch (err) {
       console.error(err);
       setMessage({ type: "error", text: "Error al subir foto de perfil." });
@@ -174,7 +187,7 @@ export default function ComercioDashboard() {
       }
       const updated = { ...formData, imageUrl: "" };
       setFormData(updated);
-      await setDoc(doc(db, "partners", currentUser.uid), updated, { merge: true });
+      await saveToFirestore(currentUser.uid, updated);
       setMessage({ type: "success", text: "Foto de perfil eliminada." });
     } catch (err) {
       console.error(err);
@@ -196,16 +209,16 @@ export default function ComercioDashboard() {
     setMessage(null);
 
     try {
-      const storageRef = ref(storage, `partners/${currentUser.uid}/menu_${Date.now()}`);
+      const storageRef = ref(storage, `partners/${currentUser.uid}/menu_${formData.menuImages.length}_${Date.now()}.jpg`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
 
       const newMenu = [...formData.menuImages, url];
       const updated = { ...formData, menuImages: newMenu };
       setFormData(updated);
-      await setDoc(doc(db, "partners", currentUser.uid), updated, { merge: true });
+      await saveToFirestore(currentUser.uid, updated);
 
-      setMessage({ type: "success", text: "Foto de menú agregada. 🍕" });
+      setMessage({ type: "success", text: "Foto agregada al menú exitosamente. 🍕" });
     } catch (err) {
       console.error(err);
       setMessage({ type: "error", text: "Error al subir imagen de menú." });
@@ -228,7 +241,7 @@ export default function ComercioDashboard() {
       const newMenu = formData.menuImages.filter((img) => img !== urlToDelete);
       const updated = { ...formData, menuImages: newMenu };
       setFormData(updated);
-      await setDoc(doc(db, "partners", currentUser.uid), updated, { merge: true });
+      await saveToFirestore(currentUser.uid, updated);
       setMessage({ type: "success", text: "Foto de menú eliminada." });
     } catch (err) {
       console.error(err);
@@ -365,7 +378,6 @@ export default function ComercioDashboard() {
           </div>
         )}
 
-        {/* Input oculto controlado por referencia */}
         <input 
           type="file" 
           ref={profileInputRef}
@@ -393,7 +405,6 @@ export default function ComercioDashboard() {
           <span className="text-[11px] font-bold text-slate-500">{formData.menuImages.length}/3 fotos</span>
         </div>
 
-        {/* Grilla de imágenes del menú */}
         <div className="grid grid-cols-3 gap-2">
           {formData.menuImages.map((imgUrl, index) => (
             <div key={index} className="relative group rounded-xl overflow-hidden border border-slate-800 aspect-square">
@@ -408,7 +419,6 @@ export default function ComercioDashboard() {
             </div>
           ))}
 
-          {/* Slots vacíos si no se llega a 3 */}
           {Array.from({ length: 3 - formData.menuImages.length }).map((_, idx) => (
             <div key={idx} className="border-2 border-dashed border-slate-800 rounded-xl aspect-square flex items-center justify-center text-slate-600 text-xs font-bold">
               +
@@ -471,17 +481,16 @@ export default function ComercioDashboard() {
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-slate-400">Dirección / Ubicación</label>
+          <label className="text-[11px] font-bold text-slate-400">Dirección / Ubicación (o Enlace a Google Maps)</label>
           <input
             type="text"
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500"
-            placeholder="Rua das Pedras, Búzios"
+            placeholder="Rua das Pedras, Búzios o https://maps.app.goo.gl/..."
           />
         </div>
 
-        {/* CAMPO DE INSTAGRAM INTEGRADO */}
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold text-slate-400">Instagram (Usuario o Link)</label>
           <input
@@ -507,7 +516,7 @@ export default function ComercioDashboard() {
         <button
           type="submit"
           disabled={savingData}
-          className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all mt-2"
+          className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all mt-2 disabled:opacity-50"
         >
           {savingData ? "Guardando..." : "💾 Guardar Todos los Cambios"}
         </button>
