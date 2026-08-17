@@ -21,7 +21,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-export default function TuristaDashboard() {
+export default function TuristaPage() {
   const [userData, setUserData] = useState<any>(null);
   const [userId, setUserId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -33,10 +33,7 @@ export default function TuristaDashboard() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const requestLocation = () => {
-    if (!navigator.geolocation) {
-      return;
-    }
-
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setUserCoords({
@@ -44,9 +41,7 @@ export default function TuristaDashboard() {
           lng: pos.coords.longitude,
         });
       },
-      (err) => {
-        console.warn("GPS no disponible:", err.message);
-      },
+      (err) => console.warn("GPS no disponible:", err.message),
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
@@ -68,12 +63,10 @@ export default function TuristaDashboard() {
             phoneNum = uData?.phone || "";
           }
         } catch (err) {
-          console.error("Error al cargar datos del usuario:", err);
+          console.error("Error cargando usuario:", err);
         }
 
         const generatedCode = `VIVE-${phoneNum.slice(-4) || currentUser.uid.slice(0, 4).toUpperCase()}`;
-
-        // Cargar listas de forma segura e independiente
         await loadComercios();
         await loadHistorial(generatedCode);
       } else {
@@ -93,8 +86,12 @@ export default function TuristaDashboard() {
         const data = d.data();
         if (data) {
           const comName = data.name || data.nombre;
-          // Validar que tenga nombre registrado y no esté vacío
-          if (comName && typeof comName === "string" && comName.trim() !== "" && comName !== "Sin nombre registrado") {
+          if (
+            comName &&
+            typeof comName === "string" &&
+            comName.trim() !== "" &&
+            comName !== "Sin nombre registrado"
+          ) {
             list.push({ id: d.id, ...data });
           }
         }
@@ -119,7 +116,7 @@ export default function TuristaDashboard() {
     }
   };
 
-  if (loading) return <p className="text-center text-slate-400 mt-8 text-sm">Cargando tu Pase...</p>;
+  if (loading) return <p className="text-center text-slate-400 mt-8 text-sm">Cargando tu Pase VIP...</p>;
 
   const passCode = `VIVE-${userData?.phone?.slice(-4) || userId.slice(0, 4).toUpperCase()}`;
 
@@ -148,9 +145,7 @@ export default function TuristaDashboard() {
   }
 
   processedComercios.sort((a, b) => {
-    if (a.distanceKm !== null && b.distanceKm !== null) {
-      return a.distanceKm - b.distanceKm;
-    }
+    if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm;
     if (a.distanceKm !== null) return -1;
     if (b.distanceKm !== null) return 1;
     return 0;
@@ -160,11 +155,9 @@ export default function TuristaDashboard() {
   const categorias = ["Todas", "Gastronomía 🍽️", "Playa 🏖️", "Bares 🍹", "Bienestar / Wellness 🧘‍♀️"];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 p-4 max-w-md mx-auto">
       {/* Tarjeta Pase VIP */}
       <div className="bg-gradient-to-br from-sky-900 via-slate-900 to-emerald-950 p-6 rounded-2xl border border-emerald-500/40 shadow-xl text-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
-
         <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-500/40 inline-block mb-2">
           PASSE VIP ATIVO 🇧🇷
         </span>
