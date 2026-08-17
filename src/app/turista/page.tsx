@@ -34,7 +34,6 @@ export default function TuristaDashboard() {
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
-      alert("Tu navegador no soporta geolocalización.");
       return;
     }
 
@@ -46,7 +45,7 @@ export default function TuristaDashboard() {
         });
       },
       (err) => {
-        console.warn("GPS no disponible o denegado:", err.message);
+        console.warn("GPS no disponible:", err.message);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -58,17 +57,23 @@ export default function TuristaDashboard() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUserId(currentUser.uid);
-        const docRef = doc(db, "users", currentUser.uid);
-        const docSnap = await getDoc(docRef);
         let phoneNum = "";
-        if (docSnap.exists()) {
-          const uData = docSnap.data();
-          setUserData(uData);
-          phoneNum = uData?.phone || "";
+
+        try {
+          const docRef = doc(db, "users", currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const uData = docSnap.data();
+            setUserData(uData);
+            phoneNum = uData?.phone || "";
+          }
+        } catch (err) {
+          console.error("Error al cargar datos del usuario:", err);
         }
 
         const generatedCode = `VIVE-${phoneNum.slice(-4) || currentUser.uid.slice(0, 4).toUpperCase()}`;
 
+        // Cargar listas de forma segura e independiente
         await loadComercios();
         await loadHistorial(generatedCode);
       } else {
@@ -86,16 +91,12 @@ export default function TuristaDashboard() {
       
       snap.forEach((d) => {
         const data = d.data();
-        const nombreComercio = data.name || data.nombre;
-        
-        // FILTRO: Solo agregar si tiene nombre registrado y no está vacío o por defecto
-        const esValido = 
-          nombreComercio && 
-          nombreComercio.trim() !== "" && 
-          nombreComercio !== "Sin nombre registrado";
-
-        if (esValido) {
-          list.push({ id: d.id, ...data });
+        if (data) {
+          const comName = data.name || data.nombre;
+          // Validar que tenga nombre registrado y no esté vacío
+          if (comName && typeof comName === "string" && comName.trim() !== "" && comName !== "Sin nombre registrado") {
+            list.push({ id: d.id, ...data });
+          }
         }
       });
 
@@ -122,9 +123,9 @@ export default function TuristaDashboard() {
 
   const passCode = `VIVE-${userData?.phone?.slice(-4) || userId.slice(0, 4).toUpperCase()}`;
 
-  let processedComercios = comercios.map((item) => {
+  let processedComercios = (comercios || []).map((item) => {
     let distanceKm: number | null = null;
-    if (userCoords && item.lat && item.lng) {
+    if (userCoords && item?.lat && item?.lng) {
       distanceKm = calculateDistance(userCoords.lat, userCoords.lng, item.lat, item.lng);
     }
     return { ...item, distanceKm };
@@ -132,15 +133,15 @@ export default function TuristaDashboard() {
 
   if (selectedSector !== "Todos") {
     processedComercios = processedComercios.filter(
-      (item) => item.sector && item.sector.toLowerCase() === selectedSector.toLowerCase()
+      (item) => item?.sector && item.sector.toLowerCase() === selectedSector.toLowerCase()
     );
   }
 
   if (selectedCategory !== "Todas") {
     processedComercios = processedComercios.filter((item) => {
-      const cat = item.category || item.categoria;
+      const cat = item?.category || item?.categoria;
       if (!cat) return false;
-      const catClean = cat.toLowerCase().replace(/[^\w\s]/gi, '').trim();
+      const catClean = String(cat).toLowerCase().replace(/[^\w\s]/gi, '').trim();
       const selClean = selectedCategory.toLowerCase().replace(/[^\w\s]/gi, '').trim();
       return catClean.includes(selClean) || selClean.includes(catClean);
     });
@@ -169,7 +170,7 @@ export default function TuristaDashboard() {
         </span>
 
         <h2 className="text-2xl font-black text-white">{userData?.name || "Viajero"}</h2>
-        <p className="text-xs text-slate-300 mt-0.5">{userData?.email}</p>
+        <p className="text-xs text-slate-300 mt-0.5">{userData?.email || auth.currentUser?.email}</p>
 
         <div
           onClick={() => setShowQRModal(true)}
@@ -288,7 +289,7 @@ export default function TuristaDashboard() {
           <div className="space-y-3">
             {processedComercios.map((item) => {
               const mainImage = item.imageUrl || item.image || item.logo || "/placeholder.jpg";
-              const comName = item.name || item.nombre;
+              const comName = item.name || item.nombre || "Comercio Socio";
               const comDesc = item.benefit || item.description || item.descripcion || "Beneficio VIP";
               const comCat = item.category || item.categoria || "General";
               const comLoc = item.location || item.address || item.direccion || "Dirección no especificada";
