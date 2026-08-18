@@ -47,7 +47,7 @@ export default function ComercioDetalle() {
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-8">
+    <div className="flex flex-col gap-4 pb-8 max-w-md mx-auto p-4 text-white bg-slate-950 min-h-screen">
       {/* Botón Volver */}
       <button
         onClick={() => router.back()}
@@ -82,10 +82,10 @@ export default function ComercioDetalle() {
         </p>
       </div>
 
-      {/* Botones de Acción */}
+      {/* Botones de Acción corregidos */}
       <div className="grid grid-cols-2 gap-3">
         {comercio.lat && comercio.lng ? (
-          
+          <a
             href={`https://www.google.com/maps/search/?api=1&query=${comercio.lat},${comercio.lng}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -100,7 +100,7 @@ export default function ComercioDetalle() {
         )}
 
         {comercio.instagram ? (
-          
+          <a
             href={`https://instagram.com/${comercio.instagram.replace("@", "")}`}
             target="_blank"
             rel="noopener noreferrer"
