@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
@@ -61,9 +63,11 @@ export default function ComercioDetalle() {
         ) : (
           <div className="w-full h-full flex items-center justify-center text-slate-600">Sin foto</div>
         )}
-        <span className="absolute top-3 right-3 bg-emerald-500 text-slate-950 font-black text-xs px-3 py-1 rounded-lg shadow-md">
-          {comercio.discount}
-        </span>
+        {comercio.discount && (
+          <span className="absolute top-3 right-3 bg-emerald-500 text-slate-950 font-black text-xs px-3 py-1 rounded-lg shadow-md">
+            {comercio.discount}
+          </span>
+        )}
       </div>
 
       {/* Info Principal */}
@@ -72,16 +76,16 @@ export default function ComercioDetalle() {
           {comercio.category || "General"}
         </span>
         <h1 className="text-2xl font-black text-white">{comercio.name}</h1>
-        <p className="text-sm font-bold text-emerald-400">{comercio.benefit}</p>
+        <p className="text-sm font-bold text-emerald-400">{comercio.benefit || comercio.discount || comercio.description}</p>
         <p className="text-xs text-slate-400 mt-1">
-          📍 {comercio.location} {comercio.sector ? `• ${comercio.sector}` : ""}
+          📍 {comercio.location || comercio.address || "Ubicación no especificada"} {comercio.sector ? `• ${comercio.sector}` : ""}
         </p>
       </div>
 
       {/* Botones de Acción */}
       <div className="grid grid-cols-2 gap-3">
         {comercio.lat && comercio.lng ? (
-          <a
+          
             href={`https://www.google.com/maps/search/?api=1&query=${comercio.lat},${comercio.lng}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -96,7 +100,7 @@ export default function ComercioDetalle() {
         )}
 
         {comercio.instagram ? (
-          <a
+          
             href={`https://instagram.com/${comercio.instagram.replace("@", "")}`}
             target="_blank"
             rel="noopener noreferrer"
