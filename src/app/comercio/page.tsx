@@ -56,6 +56,12 @@ export default function ComercioDetalle() {
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawLocation)}`
     : null;
 
+  const instagramHref = comercio.instagram
+    ? comercio.instagram.startsWith("http")
+      ? comercio.instagram
+      : `https://instagram.com/${comercio.instagram.replace("@", "")}`
+    : null;
+
   return (
     <div className="flex flex-col gap-4 pb-8">
       {/* Botón Volver */}
@@ -109,9 +115,9 @@ export default function ComercioDetalle() {
           </button>
         )}
 
-        {comercio.instagram ? (
+        {instagramHref ? (
           
-            href={`https://instagram.com/${comercio.instagram.replace("@", "").replace("https://instagram.com/", "")}`}
+            href={instagramHref}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-xs transition-all text-center shadow-md"

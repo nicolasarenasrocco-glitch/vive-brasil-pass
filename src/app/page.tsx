@@ -1,120 +1,118 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+export const dynamic = 'force-dynamic';
 
-interface Partner {
-  id: string;
-  nombre?: string;
-  categoria?: string;
-  telefono?: string;
-  direccion?: string;
-  descripcion?: string;
-  imageUrl?: string;
-}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { auth, db } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
-export default function TuristaExplorarPage() {
-  const [comercios, setComercios] = useState<Partner[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchComercios = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "partners"));
-        const lista: Partner[] = [];
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-        querySnapshot.forEach((doc) => {
-          lista.push({
-            id: doc.id,
-            ...doc.data(),
-          } as Partner);
-        });
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const uid = cred.user.uid;
 
-        setComercios(lista);
-      } catch (error) {
-        console.error("Error al obtener comercios:", error);
-      } finally {
+      const userDoc = await getDoc(doc(db, "users", uid));
+      let role = userDoc.exists() ? userDoc.data().role : null;
+
+      if (!role) {
+        const partnerDoc = await getDoc(doc(db, "partners", uid));
+        if (partnerDoc.exists()) {
+          role = partnerDoc.data().role || "comercio";
+        }
+      }
+
+      if (role === "admin") {
+        router.push("/admin");
+      } else if (role === "comercio") {
+        router.push("/comercio");
+      } else if (role === "turista") {
+        router.push("/turista");
+      } else {
+        setError("Tu cuenta no tiene un rol asignado. Contacta al equipo de Vive Brasil.");
         setLoading(false);
       }
-    };
-
-    fetchComercios();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center text-xs font-bold">
-        Cargando comercios destacados...
-      </div>
-    );
-  }
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
+        setError("Correo o contraseña incorrectos.");
+      } else {
+        setError("Error al iniciar sesión. Intenta de nuevo.");
+      }
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-4 max-w-md mx-auto flex flex-col gap-6 pb-12">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-xl font-black text-white">Descubre Comercio Local 🛍️</h1>
-        <p className="text-xs text-slate-400">Apoya a los emprendimientos locales y gana beneficios.</p>
-      </header>
-
-      {comercios.length === 0 ? (
-        <div className="p-8 bg-slate-900/50 rounded-2xl border border-slate-800 text-center text-xs font-bold text-slate-500">
-          No hay comercios registrados aún.
+    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-3">
+            ACCESO PRIVADO VIP
+          </span>
+          <h1 className="text-2xl font-black text-white">Vive Brasil Pass</h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Plataforma exclusiva para pasajeros de Vive Brasil.<br />
+            Accede con tus credenciales entregadas.
+          </p>
         </div>
-      ) : (
-        <div className="grid gap-4">
-          {comercios.map((comercio) => (
-            <div
-              key={comercio.id}
-              className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col"
-            >
-              {comercio.imageUrl ? (
-                <img
-                  src={comercio.imageUrl}
-                  alt={comercio.nombre || "Comercio"}
-                  className="w-full h-40 object-cover"
-                />
-              ) : (
-                <div className="w-full h-28 bg-slate-950 border-b border-slate-800 flex items-center justify-center text-slate-600 text-2xl">
-                  🏬
-                </div>
-              )}
 
-              <div className="p-4 flex flex-col gap-2">
-                <div className="flex justify-between items-start">
-                  <h2 className="text-base font-black text-white">
-                    {comercio.nombre || "Sin nombre registrado"}
-                  </h2>
-                  {comercio.categoria && (
-                    <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-                      {comercio.categoria}
-                    </span>
-                  )}
-                </div>
+        <form onSubmit={handleLogin} className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-slate-400">Correo Electrónico</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500"
+              placeholder="tu@email.com"
+            />
+          </div>
 
-                {comercio.descripcion && (
-                  <p className="text-xs text-slate-300 line-clamp-2">
-                    {comercio.descripcion}
-                  </p>
-                )}
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-slate-400">Contraseña</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500"
+              placeholder="••••••••"
+            />
+          </div>
 
-                <div className="flex flex-col gap-1 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
-                  {comercio.direccion && (
-                    <p className="flex items-center gap-1.5">
-                      📍 <span>{comercio.direccion}</span>
-                    </p>
-                  )}
-                  {comercio.telefono && (
-                    <p className="flex items-center gap-1.5">
-                      📞 <span>{comercio.telefono}</span>
-                    </p>
-                  )}
-                </div>
-              </div>
+          {error && (
+            <div className="bg-rose-500/10 border border-rose-500/40 text-rose-400 text-xs font-bold p-3 rounded-xl text-center">
+              {error}
             </div>
-          ))}
-        </div>
-      )}
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all mt-2 disabled:opacity-50"
+          >
+            {loading ? "Ingresando..." : "Ingresar"}
+          </button>
+        </form>
+
+        <p className="text-center text-[11px] text-slate-500 mt-6">
+          Si no tienes un usuario activo, contacta al equipo de Vive Brasil.
+        </p>
+      </div>
     </main>
   );
 }
